@@ -1,82 +1,106 @@
-# JAYHUN TAXI — Kegeyli Taxi Dispatch
+# JAYHUN TAXI — Kegeyli dispetcherlik tizimi
 
-TypeScript + React + Vite + PWA project with **white interface, yellow/gold buttons and black text**.
+Professional taksi operatorlari va haydovchilari uchun mobil-first **React + TypeScript PWA**. Dizayn: oq ish maydoni, grafit navigatsiya, sariq faqat asosiy amallar uchun. **Demo yoki soxta akkaunt yo‘q.**
 
-This is **not** Uber/Yandex: customers call an operator. The operator enters a booking, announces it in a shared voice room, drivers respond by voice or press **OLAMAN**, and the operator chooses the driver.
+## Mijozning ish jarayoni
 
-## Features implemented in repository
+1. Mijoz operatorga telefon qiladi.
+2. Operator yo‘nalish, telefon, yo‘lovchi soni, narx va izohni haqiqiy Supabase bazasiga yozadi.
+3. Operator LiveKit umumiy ovoz xonasida buyurtmani e'lon qiladi.
+4. ONLINE haydovchi ovoz orqali javob beradi yoki **OLAMAN** bosadi.
+5. Operator haydovchini tanlaydi (bir vaqtda ikki operator bir buyurtmani taqsimlay olmaydi).
+6. Haydovchi holatni yangilaydi: qabul qilindi → yo‘lda → mijoz olindi → bajarildi.
+7. Buyurtma tarixi audit jadvallarida saqlanadi.
 
-- Demo mode for **Driver**, **Operator**, **Admin** (demo state is in memory, not a real dispatch).
-- Login/password via Supabase Auth when configured.
-- Role-separated user interfaces.
-- Driver online/offline presence, operator driver list.
-- Shared LiveKit WebRTC audio room, press-and-hold microphone, audio playback, reconnect status.
-- Operator order creation, order claim, manual assignment, status updates.
-- Admin user creation through protected Supabase Edge Function, active/block UI, basic statistics.
-- Installable PWA manifest, responsive phone/desktop UI.
+## Ilovada mavjud
 
-**Important:** This is an integration scaffold / first implementation and has **not** passed build, device, or security testing. Do not deploy to an operating taxi fleet before those tests and fixes.
+- Faqat **haqiqiy Supabase email/parol autentifikatsiyasi**; xodimlarni admin yaratadi, roli/aktivligi bazadan tekshiriladi.
+- Haydovchi: online/offline, ovoz, kelgan buyurtmalar va qabul qilish, o‘ziga biriktirilgan ishlar.
+- Operator: joriy navbat, buyurtma yaratish, ovozli e'lon, haydovchilar, taqsimlash, bekor qilish va tarix.
+- Admin: xodimlarni qo‘shish/bloklash, avtomobil ma’lumotlari, tarif va statistika.
+- RLS himoyasi: haydovchi uchun mijoz telefoni yashiringan, rollar bo‘yicha server ruxsati.
+- LiveKit WebRTC ovoz xonasi uchun kod va Supabase token Edge Function.
+- Telefonda moslashuvchan PWA, mikrofon push-to-talk boshqaruvi.
 
-## Run locally
+## Ishlayotgan infratuzilma
 
-Install Node.js 20.19+ or 22.12+, then:
+**GitHub:** https://github.com/keta-comp/kegeyli-taxi  
+**Vercel production:** https://kegeyli-taxi.vercel.app  
+**Supabase:** project `duzeimbkgyjtgclwfstf` (real database, active Edge Functions).
+
+GitHub Actions `npm run build` ni har commitda tekshiradi. Vercel GitHub `main` branchidan avtomatik deploy qiladi.
+
+### Database migratsiyalari
+
+Ushbu SQL fayllar ulangan Supabase loyihasiga o‘rnatilgan. Boshqa Supabase loyihaga o‘tkazilganda ketma-ket qo‘llang:
+
+- `202611170001_initial.sql`
+- `202611170002_security.sql`
+- `202611170003_announcements.sql`
+- `202611170004_hardening.sql`
+- `202611170005_sanitized_driver_orders.sql`
+- `202611170006_order_audit.sql`
+
+3 Edge Function: `livekit-token`, `create-user`, `set-user-active`. Bular ulangan Supabase loyihasiga joylangan.
+
+## Birinchi administrator — muhim yakuniy sozlama
+
+Hozir Supabase Auth’da **birorta ham haqiqiy user yo‘q**. Tizim anonim kirishga ruxsat bermaydi; bu xavfsizlik talabidir.
+
+1. Supabase Dashboard → Authentication → Users → Add user orqali faqat o‘zingizga tegishli email va kuchli maxfiy parol bilan birinchi administratorni yarating. Parolni chatga yubormang.
+2. O‘sha foydalanuvchi **Auth UUID** sini oling.
+3. SQL Editor’da quyidagi kodni haqiqiy UUID bilan ishga tushiring:
+
+```sql
+insert into public.profiles (id, name, role, active)
+values ('PASTE_REAL_AUTH_USER_UUID', 'Administrator', 'admin', true)
+on conflict (id) do update set role='admin', active=true;
+```
+
+4. JAYHUN TAXI saytidagi Login maydoniga shu emailni va parolni kiriting.
+5. Admin panel orqali operatorlar va haydovchilarni yarating. Ularning loginlari `login@jayhun.local` ko‘rinishida Auth’da saqlanadi, UI’da loginning o‘zini kiritish mumkin.
+
+Ushbu bootstrap **faqat ishonchli administrator tomonidan** bajarilishi kerak.
+
+## LiveKit — mikrofonni haqiqiy ishlatish
+
+LiveKit Cloud loyihasini yoki o‘zingizning LiveKit serveringizni yarating. Supabase Edge Functions Secrets’da quyidagi maxfiy o‘zgaruvchilarni yozing (repo yoki frontendga emas):
+
+```text
+LIVEKIT_URL=wss://YOUR-LIVEKIT-SERVER
+LIVEKIT_API_KEY=...
+LIVEKIT_API_SECRET=...
+```
+
+Token faqat login qilgan va faol foydalanuvchiga `JAYHUN_TAXI_MAIN_ROOM` uchun beriladi. Haydovchi xona uchun ONLINE bo‘lishi shart.
+
+**Android ogohlantirish:** sof browser PWA’da ekran qulflanganda mikrofon/ovoz uzilmasligini kafolatlab bo‘lmaydi. Taksistlarga tarqatishdan avval ekran o‘chganda va tarmoq almashganda test qiling. Kafolatlangan background audio kerak bo‘lsa Android native foreground service/Capacitor integratsiyasi bilan alohida versiya kerak bo‘ladi.
+
+## Lokal ishga tushirish
 
 ```bash
 npm install
 cp .env.example .env.local
 npm run dev
+npm run build
 ```
 
 Windows PowerShell: `Copy-Item .env.example .env.local`.
 
-In the browser, select one of the demo roles if you haven't configured Supabase. No live audio is sent in demo mode.
+`.env.local`da faqat public browser environment: `VITE_SUPABASE_URL` va `VITE_SUPABASE_ANON_KEY` (publishable key). **Hech qachon** `service_role` yoki LiveKit secretni `VITE_` orqali bermang.
 
-## Configure Supabase
+## Production release mezonlari
 
-1. Create a Supabase project (the connected Supabase project has already received the five migrations).
-2. Execute the SQL migrations in order in Supabase SQL editor:\n   - `supabase/migrations/202611170001_initial.sql`\n   - `supabase/migrations/202611170002_security.sql`\n   - `supabase/migrations/202611170003_announcements.sql`
-   - `supabase/migrations/202611170004_hardening.sql`
-   - `supabase/migrations/202611170005_sanitized_driver_orders.sql`
-3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` or hosting environment. This key is **publishable**; do not use the `service_role` key in the browser.
-4. Create your first admin manually in Supabase Authentication -> Users (email/password).
-5. Create the first administrator through Supabase Auth with the email `admin@jayhun.local` (or any corresponding login mapped to `@jayhun.local`), then copy the generated Auth UUID and run the bootstrap command in the migration, replacing the placeholder UUID. Use a strong unique password; never send it in chat. First admin creation is privileged and intentionally NOT exposed via anonymous signup.
-6. Supabase Edge Functions `livekit-token`, `create-user`, and `set-user-active` have been deployed in the connected project. Keep JWT verification enabled for all functions.
+- [x] Demo va soxta buyurtmalar olib tashlangan
+- [x] Real bazaga ulangan login, xodim va buyurtma kodlari
+- [x] Mobil-first oq/grafit/sariq dizayn
+- [x] Audit log, RLS va role-check
+- [x] GitHub build hamda Vercel deploy
+- [ ] Birinchi haqiqiy admin Auth akkauntini yaratish
+- [ ] LiveKit Cloud/hosted hisobini va server-side secretlarni sozlash
+- [ ] Real operator/haydovchi bilan end-to-end buyurtma sinovi
+- [ ] Real Android qurilmalarda mikrofonga ruxsat, qulf ekran, reconnect, Bluetooth testlari
+- [ ] Security advisor’dagi 5 autentifikatsiyalangan SECURITY DEFINER RPCni mustaqil audit qilish
+- [ ] Accessibility, monitoring, parolni tiklash, trafik va stress test
 
-## Configure LiveKit
-
-Create a LiveKit Cloud project or host LiveKit, then add **server-side Edge Function secrets** (Supabase project settings or CLI):
-
-```text
-LIVEKIT_URL=wss://YOUR-LIVEKIT-SERVER
-LIVEKIT_API_KEY=YOUR_LIVEKIT_API_KEY
-LIVEKIT_API_SECRET=YOUR_LIVEKIT_API_SECRET
-```
-
-The LiveKit secret must never be prefixed `VITE_`, committed to Git, or sent to the frontend. The `livekit-token` function validates Supabase Auth and role, then creates a token restricted to `JAYHUN_TAXI_MAIN_ROOM`.
-
-## Build / publish
-
-```bash
-npm run build
-npm run preview
-```
-
-Deploy the generated `dist/` directory to Cloudflare Pages or Vercel, with HTTPS and the two public `VITE_` environment variables configured. To install on Android Chrome, open the HTTPS site, select **Install app / Add to Home Screen**.
-
-## Critical production limitations / release checklist
-
-- **Background/locked-screen audio is not guaranteed for a browser PWA.** Test on several Android phones, with screen off, cellular/Wi-Fi transitions, Bluetooth, notification interruptions and battery optimization. If background audio is mandatory, ship a native Android wrapper with an appropriately implemented foreground service / audio integration, or a native app.
-- A restricted, RLS-controlled `order_announcements` table excludes customer phone numbers and notes. Validate the migration, row-level policies and caller permissions against an actual Supabase project before going live; they are not yet live-tested.\n- Online drivers receive sanitized order announcements via a dedicated realtime table.
-- Order assignment and driver progress now use server-side RPCs, but add an audit history, error-recovery integration tests, and defensive rate limiting.
-- Admin can save a `Shahar ichi` tariff in Supabase. Additional tariff management, operator-default selection and end-to-end testing are still needed.
-- Complete user/admin acceptance testing, microphone-device testing, error states, accessibility and loading states, credentials recovery, HTTPS and deployment. GitHub Actions validates TypeScript + Vite compilation, not production behavior.
-- Use a migration/rollback process, enforce safe PWA updates so live voice sessions are not interrupted, and review service worker lifecycle. Blocking an account calls LiveKit's removal API, but must be end-to-end tested.
-- No maps, GPS, customer app, automated dispatch, online payments, or price prediction are part of MVP.
-
-## Current development status
-
-Initial source code is committed. Backend resources and credentials are **not** provisioned by this repository. No claim of production readiness or tested live audio should be inferred.
-
-## Connected backend status (November 2026)
-
-Five database migrations were applied successfully. Six RLS-protected tables exist; the first demo tariff is 8,000 UZS. Three authenticated Edge Functions are deployed. No live driver/admin user has been created and LiveKit credentials are not configured; therefore production login and live voice are not yet tested. The connected project is named `pulsardigitally-alt's Project`, reference `duzeimbkgyjtgclwfstf`. Confirm it is intended to be JAYHUN TAXI before connecting client deployment. Security advisor still warns on five intentionally authenticated SECURITY DEFINER helper/RPC functions; review these for launch. 
+**Bu demo emas, lekin hali to‘liq production sertifikatsiyasidan o‘tgan taksi xizmati ham emas.** Hisoblar va LiveKit bog‘lanmaguncha real taksi amaliyotiga chiqarilmaydi.
