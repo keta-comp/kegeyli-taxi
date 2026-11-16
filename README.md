@@ -34,11 +34,11 @@ In the browser, select one of the demo roles if you haven't configured Supabase.
 ## Configure Supabase
 
 1. Create a Supabase project.
-2. Execute `supabase/migrations/202611170001_initial.sql` in SQL editor.
+2. Execute the SQL migrations in order in Supabase SQL editor:\n   - `supabase/migrations/202611170001_initial.sql`\n   - `supabase/migrations/202611170002_security.sql`\n   - `supabase/migrations/202611170003_announcements.sql`
 3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` or hosting environment. This key is **publishable**; do not use the `service_role` key in the browser.
 4. Create your first admin manually in Supabase Authentication -> Users (email/password).
 5. Copy the generated Auth user's UUID and run the bootstrap command in the migration, replacing the placeholder UUID. First admin creation is privileged and intentionally NOT exposed via anonymous signup.
-6. Deploy Supabase Edge Functions `livekit-token` and `create-user`. Keep JWT verification enabled for both functions.
+6. Deploy Supabase Edge Functions `livekit-token`, `create-user`, and `set-user-active`. Keep JWT verification enabled for all functions.
 
 ## Configure LiveKit
 
@@ -64,11 +64,11 @@ Deploy the generated `dist/` directory to Cloudflare Pages or Vercel, with HTTPS
 ## Critical production limitations / release checklist
 
 - **Background/locked-screen audio is not guaranteed for a browser PWA.** Test on several Android phones, with screen off, cellular/Wi-Fi transitions, Bluetooth, notification interruptions and battery optimization. If background audio is mandatory, ship a native Android wrapper with an appropriately implemented foreground service / audio integration, or a native app.
-- Enforce **privacy separation** for customer phone numbers before going live. The current order RLS grants authenticated drivers access to the orders table and needs role-scoped projections / RPCs to prevent reading customers' private data.
-- Harden order transitions and assignment against concurrent operators (server RPC / transaction), add server-side audit history and defensive rate limiting.
-- Admin tariff UI currently updates the form's default price **locally**, not the Supabase tariffs table. It is not a finished persistent tariff manager.
-- Complete user/admin acceptance testing, error states, accessibility and loading states, credentials recovery, CI/build validation, HTTPS and deployment.
-- Use a migration/rollback process, enforce safe PWA updates so live voice sessions are not interrupted, and review service worker lifecycle.
+- A restricted `driver_orders` view excludes customer phone numbers and notes. Validate the migration, row-level policies and caller permissions against an actual Supabase project before going live; they are not yet live-tested.\n- Online drivers receive sanitized order announcements via a dedicated realtime table.
+- Order assignment and driver progress now use server-side RPCs, but add an audit history, error-recovery integration tests, and defensive rate limiting.
+- Admin can save a `Shahar ichi` tariff in Supabase. Additional tariff management, operator-default selection and end-to-end testing are still needed.
+- Complete user/admin acceptance testing, microphone-device testing, error states, accessibility and loading states, credentials recovery, HTTPS and deployment. GitHub Actions validates TypeScript + Vite compilation, not production behavior.
+- Use a migration/rollback process, enforce safe PWA updates so live voice sessions are not interrupted, and review service worker lifecycle. Blocking an account calls LiveKit's removal API, but must be end-to-end tested.
 - No maps, GPS, customer app, automated dispatch, online payments, or price prediction are part of MVP.
 
 ## Current development status
