@@ -13,7 +13,7 @@ create table if not exists public.order_announcements (
 );
 alter table public.order_announcements enable row level security;
 create policy announcements_read on public.order_announcements for select to authenticated
-using(public.has_role('driver') or public.has_role('operator') or public.has_role('admin'));
+using(public.has_role('operator') or public.has_role('admin') or (public.has_role('driver') and exists(select 1 from public.drivers where user_id=auth.uid() and is_online=true and last_seen_at>now()-interval '90 seconds')));
 revoke all on public.order_announcements from anon;
 grant select on public.order_announcements to authenticated;
 
