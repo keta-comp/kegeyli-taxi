@@ -13,7 +13,14 @@ serve(async(req)=>{
     if(error||!user)return Response.json({error:'Unauthorized'},{status:401,headers:cors});
     const {data:profile}=await client.from('profiles').select('name,role,active').eq('id',user.id).single();
     if(!profile?.active||!['driver','operator','admin'].includes(profile.role))return Response.json({error:'Forbidden'},{status:403,headers:cors});
-    if(profile.role==='driver'){const {data:driver}=await client.from('drivers').select('is_online,last_seen_at').eq('user_id',user.id).single();if(!driver?.is_online||!driver.last_seen_at||Date.now()-new Date(driver.last_seen_at).getTime()>90000)return Response.json({error:'Go ONLINE before joining voice chat'},{status:403,headers:cors});}
+    if(profile.role==='driver'){
+      const {data:driver,error:driverError}=await client.from('drivers').select('is_online').eq('user_id',user.id).single();
+      if(driverError||!driver?.is_online)return Response.json({error:'Avval bosh sahifada ONLINE holatini yoqing.'},{status:403,headers:cors});
+      // Background browsers pause intervals; renew presence now instead of rejecting a legitimately online driver.
+      const {error:presenceError}=await client.from('drivers')
+        .update({last_seen_at:new Date().toISOString()}).eq('user_id',user.id);
+      if(presenceError)return Response.json({error:'Faollikni yangilab bo‘lmadi. Internetni tekshiring.'},{status:409,headers:cors});
+    }
     const {room}=await req.json().catch(()=>({room:'JAYHUN_TAXI_MAIN_ROOM'}));
     if(room!=='JAYHUN_TAXI_MAIN_ROOM')return Response.json({error:'Invalid room'},{status:403,headers:cors});
     const key=Deno.env.get('LIVEKIT_API_KEY'),secret=Deno.env.get('LIVEKIT_API_SECRET'),serverUrl=Deno.env.get('LIVEKIT_URL');
