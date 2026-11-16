@@ -33,12 +33,14 @@ In the browser, select one of the demo roles if you haven't configured Supabase.
 
 ## Configure Supabase
 
-1. Create a Supabase project.
+1. Create a Supabase project (the connected Supabase project has already received the five migrations).
 2. Execute the SQL migrations in order in Supabase SQL editor:\n   - `supabase/migrations/202611170001_initial.sql`\n   - `supabase/migrations/202611170002_security.sql`\n   - `supabase/migrations/202611170003_announcements.sql`
+   - `supabase/migrations/202611170004_hardening.sql`
+   - `supabase/migrations/202611170005_sanitized_driver_orders.sql`
 3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` or hosting environment. This key is **publishable**; do not use the `service_role` key in the browser.
 4. Create your first admin manually in Supabase Authentication -> Users (email/password).
-5. Copy the generated Auth user's UUID and run the bootstrap command in the migration, replacing the placeholder UUID. First admin creation is privileged and intentionally NOT exposed via anonymous signup.
-6. Deploy Supabase Edge Functions `livekit-token`, `create-user`, and `set-user-active`. Keep JWT verification enabled for all functions.
+5. Create the first administrator through Supabase Auth with the email `admin@jayhun.local` (or any corresponding login mapped to `@jayhun.local`), then copy the generated Auth UUID and run the bootstrap command in the migration, replacing the placeholder UUID. Use a strong unique password; never send it in chat. First admin creation is privileged and intentionally NOT exposed via anonymous signup.
+6. Supabase Edge Functions `livekit-token`, `create-user`, and `set-user-active` have been deployed in the connected project. Keep JWT verification enabled for all functions.
 
 ## Configure LiveKit
 
@@ -64,7 +66,7 @@ Deploy the generated `dist/` directory to Cloudflare Pages or Vercel, with HTTPS
 ## Critical production limitations / release checklist
 
 - **Background/locked-screen audio is not guaranteed for a browser PWA.** Test on several Android phones, with screen off, cellular/Wi-Fi transitions, Bluetooth, notification interruptions and battery optimization. If background audio is mandatory, ship a native Android wrapper with an appropriately implemented foreground service / audio integration, or a native app.
-- A restricted `driver_orders` view excludes customer phone numbers and notes. Validate the migration, row-level policies and caller permissions against an actual Supabase project before going live; they are not yet live-tested.\n- Online drivers receive sanitized order announcements via a dedicated realtime table.
+- A restricted, RLS-controlled `order_announcements` table excludes customer phone numbers and notes. Validate the migration, row-level policies and caller permissions against an actual Supabase project before going live; they are not yet live-tested.\n- Online drivers receive sanitized order announcements via a dedicated realtime table.
 - Order assignment and driver progress now use server-side RPCs, but add an audit history, error-recovery integration tests, and defensive rate limiting.
 - Admin can save a `Shahar ichi` tariff in Supabase. Additional tariff management, operator-default selection and end-to-end testing are still needed.
 - Complete user/admin acceptance testing, microphone-device testing, error states, accessibility and loading states, credentials recovery, HTTPS and deployment. GitHub Actions validates TypeScript + Vite compilation, not production behavior.
@@ -74,3 +76,7 @@ Deploy the generated `dist/` directory to Cloudflare Pages or Vercel, with HTTPS
 ## Current development status
 
 Initial source code is committed. Backend resources and credentials are **not** provisioned by this repository. No claim of production readiness or tested live audio should be inferred.
+
+## Connected backend status (November 2026)
+
+Five database migrations were applied successfully. Six RLS-protected tables exist; the first demo tariff is 8,000 UZS. Three authenticated Edge Functions are deployed. No live driver/admin user has been created and LiveKit credentials are not configured; therefore production login and live voice are not yet tested. The connected project is named `pulsardigitally-alt's Project`, reference `duzeimbkgyjtgclwfstf`. Confirm it is intended to be JAYHUN TAXI before connecting client deployment. Security advisor still warns on five intentionally authenticated SECURITY DEFINER helper/RPC functions; review these for launch. 
