@@ -237,3 +237,7 @@ aside button span{line-height:1.3}
  .bottom::-webkit-scrollbar{display:none}
  .bottom button{flex:0 0 71px;min-width:71px}
 }
+
+/* Employee onboarding: prevent ambiguous email-shaped usernames. */
+.form-grid .input-hint{font-size:11px;line-height:1.5;color:#87929c;font-weight:500;letter-spacing:0}
+.form-grid label:has(.input-hint){align-content:start}
