@@ -4,10 +4,10 @@ import {Bell, BellRing, CheckCheck, Volume2, VolumeX, X} from 'lucide-react';
 import './driver-alerts.css';
 
 type Announcement={order_id:string;order_number:number;pickup_address:string;destination:string;passengers_count:number;price:number;status:string};
-type Props={db:SupabaseClient;driverId:string;online:boolean;onClaim:(orderId:string)=>Promise<void>;onShowOrders:()=>void};
+type Props={db:SupabaseClient;driverId:string;online:boolean;showSettings:boolean;onClaim:(orderId:string)=>Promise<void>;onShowOrders:()=>void};
 
 /** Realtime alerts work when the PWA is running; background/closed push needs a push backend. */
-export default function DriverOrderAlerts({db,driverId,online,onClaim,onShowOrders}:Props){
+export default function DriverOrderAlerts({db,driverId,online,showSettings,onClaim,onShowOrders}:Props){
  const [enabled,setEnabled]=useState(false),[muted,setMuted]=useState(false),[incoming,setIncoming]=useState<Announcement|null>(null),[claiming,setClaiming]=useState(false),[permission,setPermission]=useState(typeof Notification==='undefined'?'unsupported':Notification.permission);
  const audio=useRef<AudioContext|null>(null),bellTimer=useRef<number|undefined>(undefined),announced=useRef<Set<string>>(new Set());
  const stopBell=useCallback(()=>{window.clearInterval(bellTimer.current);bellTimer.current=undefined;},[]);
@@ -54,7 +54,7 @@ export default function DriverOrderAlerts({db,driverId,online,onClaim,onShowOrde
  function dismiss(){setIncoming(null);stopBell()}
  async function accept(){if(!incoming)return;setClaiming(true);try{await onClaim(incoming.order_id);dismiss();onShowOrders()}finally{setClaiming(false)}}
  return <>
-  <section className="alerts-settings"><div className="alerts-settings-copy"><Bell size={19}/><div><strong>Buyurtma xabarnomalari</strong><small>{enabled?'Yangi buyurtma kelganda ovozli signal ishlaydi':'Signal eshitish uchun xabarnomani yoqing'}</small></div></div><div className="alerts-settings-actions">{enabled&&<button type="button" aria-label={muted?'Ovozni yoqish':'Ovozni o‘chirish'} onClick={()=>setMuted(v=>!v)}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>}<button type="button" className={enabled?'enabled':'primary'} onClick={()=>void enable()}>{enabled?<><CheckCheck size={15}/> Yoqilgan</>:'Yoqish'}</button></div></section>
+  {showSettings&&<section className="alerts-settings"><div className="alerts-settings-copy"><Bell size={19}/><div><strong>Buyurtma xabarnomalari</strong><small>{enabled?'Yangi buyurtma kelganda ovozli signal ishlaydi':'Signal eshitish uchun xabarnomani yoqing'}</small></div></div><div className="alerts-settings-actions">{enabled&&<button type="button" aria-label={muted?'Ovozni yoqish':'Ovozni o‘chirish'} onClick={()=>setMuted(v=>!v)}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>}<button type="button" className={enabled?'enabled':'primary'} onClick={()=>void enable()}>{enabled?<><CheckCheck size={15}/> Yoqilgan</>:'Yoqish'}</button></div></section>}
   {enabled&&permission==='denied'&&<p className="alerts-permission">Telefon bildirishnomalari bloklangan. Chrome sayt sozlamalaridan Notifications ruxsatini berish mumkin; ilova ochiq turganda ovozli signal ishlaydi.</p>}
   {incoming&&online&&<div className="order-alert-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="order-alert-title"><div className="order-alert-sheet"><div className="order-alert-top"><span><BellRing size={19}/> YANGI BUYURTMA #{incoming.order_number}</span><button type="button" onClick={dismiss} aria-label="Ogohlantirishni yopish"><X size={21}/></button></div><h2 id="order-alert-title">Yangi zakaz keldi!</h2><div className="order-alert-route"><strong>{incoming.pickup_address}</strong><span>↓</span><strong>{incoming.destination}</strong></div><p>{incoming.passengers_count} yo‘lovchi · {incoming.price.toLocaleString('uz-UZ')} so‘m</p><div className="order-alert-buttons"><button type="button" onClick={dismiss}>Keyinroq</button><button type="button" className="primary" onClick={()=>void accept()} disabled={claiming}>{claiming?'Yuborilmoqda…':'OLAMAN'}</button></div><small>Signal ilova ochiq turganda tasdiqlamaguningizcha takrorlanadi. Telefon qulfda bo‘lsa ovoz tizim tomonidan cheklanishi mumkin.</small></div></div>}
  </>;
