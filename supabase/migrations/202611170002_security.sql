@@ -111,6 +111,16 @@ begin
      or (old.status='PASSENGER_PICKED_UP' and new.status='COMPLETED'))
    then raise exception 'Invalid order status transition'; end if;
  end if;
+ if public.has_role('operator') and not public.has_role('admin') then
+   if new.status is distinct from old.status and not (
+     (old.status='NEW' and new.status in ('ACCEPTED','CANCELLED')) or
+     (old.status='ACCEPTED' and new.status in ('ON_THE_WAY','CANCELLED')) or
+     (old.status='ON_THE_WAY' and new.status in ('PASSENGER_PICKED_UP','CANCELLED')) or
+     (old.status='PASSENGER_PICKED_UP' and new.status in ('COMPLETED','CANCELLED'))
+   ) then raise exception 'Invalid order status transition'; end if;
+   if old.status <> 'NEW' and new.driver_id is distinct from old.driver_id
+     then raise exception 'Cannot reassign an active order'; end if;
+ end if;
  if new.id is distinct from old.id or new.order_number is distinct from old.order_number
    or new.created_at is distinct from old.created_at
    then raise exception 'Order identity cannot be changed'; end if;
