@@ -14,7 +14,7 @@ o.destination,o.passengers_count,o.price,null::text as notes,o.status,
 o.driver_id,o.operator_id,o.created_at
 from public.orders o
 where public.has_role('driver') and
- (o.status='NEW' or o.driver_id in (
+ ((o.status='NEW' and exists(select 1 from public.drivers online_d where online_d.user_id=auth.uid() and online_d.is_online=true and online_d.last_seen_at>now()-interval '90 seconds')) or o.driver_id in (
    select d.id from public.drivers d where d.user_id=auth.uid()
  ));
 revoke all on public.driver_orders from public;
